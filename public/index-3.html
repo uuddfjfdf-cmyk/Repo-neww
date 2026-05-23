@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AuthLab — Belajar Autentikasi</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a27;
+    --border: #2a2a3d;
+    --accent: #6c63ff;
+    --accent2: #ff6b6b;
+    --accent3: #43e97b;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --google: #4285f4;
+    --github: #f0f6fc;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb-1 { width: 500px; height: 500px; background: rgba(108,99,255,0.12); top: -100px; left: -100px; }
+  .glow-orb-2 { width: 400px; height: 400px; background: rgba(255,107,107,0.08); bottom: -100px; right: -100px; }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 60px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 1rem;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    margin-bottom: 70px;
+    animation: fadeUp 0.7s ease 0.1s both;
+  }
+  .hero-tag {
+    display: inline-block;
+    background: rgba(108,99,255,0.12);
+    border: 1px solid rgba(108,99,255,0.3);
+    color: #a09aff;
+    font-size: 0.78rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    padding: 5px 14px;
+    border-radius: 999px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  /* ── TAB NAV ── */
+  .tab-nav {
+    display: flex;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 6px;
+    margin-bottom: 30px;
+    animation: fadeUp 0.7s ease 0.2s both;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  .tab-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .tab-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.04); }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    animation: fadeUp 0.7s ease 0.3s both;
+  }
+  @media(max-width: 700px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 30px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .card:hover { border-color: rgba(108,99,255,0.4); }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card:hover::before { opacity: 1; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .card-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .card-icon.purple { background: rgba(108,99,255,0.15); }
+  .card-icon.red { background: rgba(255,107,107,0.12); }
+  .card-icon.green { background: rgba(67,233,123,0.12); }
+  .card-icon.blue { background: rgba(66,133,244,0.12); }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 2px;
+  }
+  .card-sub { font-size: 0.78rem; color: var(--muted); }
+
+  /* ── TAB PANELS ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── FORM ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+  }
+  .form-input::placeholder { color: var(--muted); }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+  }
+  .input-row .form-input { flex: 1; }
+
+  .pw-wrapper { position: relative; }
+  .pw-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: var(--muted);
+    font-size: 1rem; transition: color 0.2s;
+  }
+  .pw-toggle:hover { color: var(--text); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%;
+    padding: 13px 20px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #8b7cf6);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(108,99,255,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-google {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-google:hover { background: var(--surface); border-color: #4285f4; box-shadow: 0 0 12px rgba(66,133,244,0.2); }
+
+  .btn-github {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    margin-top: 10px;
+  }
+  .btn-github:hover { background: var(--surface); border-color: #f0f6fc; box-shadow: 0 0 12px rgba(240,246,252,0.15); }
+
+  .btn-magic {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(255,107,107,0.3);
+  }
+  .btn-magic:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(255,107,107,0.4); }
+
+  .btn-otp {
+    background: linear-gradient(135deg, var(--accent3), #38d9a9);
+    color: #0a0a0f;
+    box-shadow: 0 4px 20px rgba(67,233,123,0.3);
+    font-weight: 700;
+  }
+  .btn-otp:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(67,233,123,0.4); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── OTP INPUT ── */
+  .otp-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px 0;
+  }
+  .otp-input {
+    width: 50px; height: 58px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 1.4rem;
+    font-family: 'DM Mono', monospace;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+    caret-color: var(--accent3);
+  }
+  .otp-input:focus {
+    border-color: var(--accent3);
+    box-shadow: 0 0 0 3px rgba(67,233,123,0.15);
+    transform: scale(1.05);
+  }
+  .otp-input.filled { border-color: var(--accent3); background: rgba(67,233,123,0.06); }
+
+  /* ── CODE EXPLANATION ── */
+  .code-block {
+    background: #0d0d14;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: #c0c0d8;
+    overflow-x: auto;
+    margin-top: 16px;
+  }
+  .code-block .c-comment { color: #5c5c80; }
+  .code-block .c-key { color: #a09aff; }
+  .code-block .c-str { color: #ffd6a5; }
+  .code-block .c-fn { color: var(--accent3); }
+  .code-block .c-kw { color: var(--accent2); }
+
+  /* ── STATUS BADGES ── */
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 0.8rem;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.green { background: var(--accent3); box-shadow: 0 0 6px var(--accent3); animation: pulse 2s infinite; }
+  .status-dot.yellow { background: #f7b731; box-shadow: 0 0 6px #f7b731; }
+  .status-dot.red { background: var(--accent2); }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.83rem;
+    transition: border-color 0.2s;
+  }
+  .flow-step.active-step { border-color: var(--accent3); background: rgba(67,233,123,0.06); }
+  .flow-step.done-step { border-color: rgba(108,99,255,0.4); }
+  .flow-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--border);
+    display: grid; place-items: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    font-family: 'DM Mono', monospace;
+  }
+  .flow-num.done { background: var(--accent); }
+  .flow-num.active { background: var(--accent3); color: #0a0a0f; }
+
+  /* ── TOKEN DISPLAY ── */
+  .token-box {
+    background: #0d0d14;
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    word-break: break-all;
+    line-height: 1.6;
+    display: none;
+  }
+  .token-label { color: var(--muted); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+  .token-value { color: var(--accent3); }
+
+  /* ── PASSWORD STRENGTH ── */
+  .strength-bar {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border);
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .strength-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s, background 0.4s;
+    width: 0%;
+  }
+  .strength-label { font-size: 0.72rem; color: var(--muted); margin-top: 5px; height: 14px; }
+
+  /* ── FULL-WIDTH PANEL ── */
+  .full-card {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 30px;
+    margin-top: 8px;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .info-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .info-card h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .info-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.87rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 340px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+  /* ── LINK STYLES ── */
+  .link { color: var(--accent); text-decoration: none; font-size: 0.82rem; transition: opacity 0.2s; }
+  .link:hover { opacity: 0.7; }
+  .form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; color: var(--muted); font-size: 0.82rem; }
+
+  /* ── CHECKLIST ── */
+  .checklist { list-style: none; margin-top: 10px; }
+  .checklist li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    padding: 4px 0;
+    transition: color 0.3s;
+  }
+  .checklist li.ok { color: var(--accent3); }
+  .checklist li span.icon { font-size: 0.85rem; width: 16px; }
+
+  /* ── PHONE OTP ── */
+  .phone-preview {
+    background: #0d0d14;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-top: 14px;
+    text-align: center;
+    display: none;
+  }
+  .phone-preview .sms-bubble {
+    background: var(--surface2);
+    border-radius: 12px 12px 12px 4px;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 0.85rem;
+    display: inline-block;
+    max-width: 260px;
+    border: 1px solid var(--border);
+  }
+  .phone-preview .sms-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent3);
+    letter-spacing: 6px;
+    margin-top: 6px;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown { from { opacity:0; transform: translateY(-20px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(200%); } }
+
+  .loading-ring {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin-bottom: 4px;
+  }
+  .section-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 20px; }
+
+  /* Shimmer effect on btn */
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    transform: skewX(-20deg);
+  }
+  .btn:hover::after { animation: shimmer 0.6s ease; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media(max-width: 420px) { .two-col { grid-template-columns: 1fr; } }
+
+  select.form-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237070a0' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="glow-orb glow-orb-1"></div>
+<div class="glow-orb glow-orb-2"></div>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔐</div>
+      Auth<span>Lab</span>
+    </div>
+    <div class="badge">// belajar autentikasi</div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">🎓 Interactive Learning</div>
+    <h1>Semua cara <em>login & sign-up</em><br>dalam satu tempat</h1>
+    <p>Pelajari cara kerja email/password, OAuth Google, magic link, OTP, dan lainnya — langsung interaktif dengan penjelasan kode.</p>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('signup')">✍️ Sign Up</button>
+    <button class="tab-btn" onclick="switchTab('login')">🔑 Login</button>
+    <button class="tab-btn" onclick="switchTab('oauth')">🌐 OAuth</button>
+    <button class="tab-btn" onclick="switchTab('magic')">✨ Magic Link</button>
+    <button class="tab-btn" onclick="switchTab('otp')">📱 OTP/Phone</button>
+    <button class="tab-btn" onclick="switchTab('jwt')">🪙 JWT Token</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- TAB: SIGN UP -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-signup">
+    <div class="main-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon purple">✍️</div>
+          <div>
+            <div class="card-title">Registrasi Akun Baru</div>
+            <div class="card-sub">Email + Password klasik</div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Nama Depan</label>
+            <input class="form-input" type="text" placeholder="Budi" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nama Belakang</label>
+            <input class="form-input" type="text" placeholder="Santoso" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" placeholder="budi@email.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-input" type="text" placeholder="@budi_santoso" id="usernameInput" oninput="checkUsername()" />
+          <div id="usernameStatus" style="height:16px;margin-top:5px;font-size:0.75rem;font-family:'DM Mono',monospace;"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="pw-wrapper">
+            <input class="form-input" type="password" id="signupPw" placeholder="Min 8 karakter" oninput="checkStrength()" />
+            <button class="pw-toggle" onclick="togglePw('signupPw', this)">👁️</button>
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+          <div class="strength-label" id="strengthLabel"></div>
+          <ul class="checklist" id="pwChecklist">
+            <li id="c-len"><span class="icon">○</span> Min 8 karakter</li>
+            <li id="c-upper"><span class="icon">○</span> Huruf kapital</li>
+            <li id="c-num"><span class="icon">○</span> Angka</li>
+            <li id="c-sym"><span class="icon">○</span> Simbol (!@#$)</li>
+          </ul>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Konfirmasi Password</label>
+          <div class="pw-wrapper">
+            <input class="form-input" type="password" id="confirmPw" placeholder="Ulangi password" oninput="checkConfirm()" />
+            <button class="pw-toggle" onclick="togglePw('confirmPw', this)">👁️</button>
+          </div>
+          <div id="confirmStatus" style="height:16px;margin-top:5px;font-size:0.75rem;font-family:'DM Mono',monospace;"></div>
+        </div>
+        <button class="btn btn-primary" onclick="doSignup()">
+          <span id="signupTxt">Buat Akun</span>
+          <div class="loading-ring" id="signupLoader"></div>
+        </button>
+        <div class="form-footer">
+          <span>Sudah punya akun?</span>
+          <a href="#" class="link" onclick="switchTab('login')">Masuk sekarang →</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon purple">💡</div>
+          <div>
+            <div class="card-title">Gimana Cara Kerjanya?</div>
+            <div class="card-sub">Alur registrasi di backend</div>
+          </div>
+        </div>
+        <div class="flow" id="signupFlow">
+          <div class="flow-step" id="sf1">
+            <div class="flow-num">1</div>
+            <div><strong>User mengisi form</strong><br><span style="color:var(--muted);font-size:0.78rem;">Validasi di sisi client (password strength, format email)</span></div>
+          </div>
+          <div class="flow-step" id="sf2">
+            <div class="flow-num">2</div>
+            <div><strong>Data dikirim ke server (POST /register)</strong><br><span style="color:var(--muted);font-size:0.78rem;">Body: {name, email, password}</span></div>
+          </div>
+          <div class="flow-step" id="sf3">
+            <div class="flow-num">3</div>
+            <div><strong>Password di-hash dengan bcrypt</strong><br><span style="color:var(--muted);font-size:0.78rem;">JANGAN simpan plain text password!</span></div>
+          </div>
+          <div class="flow-step" id="sf4">
+            <div class="flow-num">4</div>
+            <div><strong>User disimpan ke database</strong><br><span style="color:var(--muted);font-size:0.78rem;">Email verifikasi dikirim ke inbox</span></div>
+          </div>
+          <div class="flow-step" id="sf5">
+            <div class="flow-num">5</div>
+            <div><strong>JWT Token dibuat & dikembalikan</strong><br><span style="color:var(--muted);font-size:0.78rem;">Simpan di httpOnly cookie atau localStorage</span></div>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="c-comment">// Contoh kode Node.js (Express)</span>
+<br><span class="c-kw">app</span>.<span class="c-fn">post</span>(<span class="c-str">'/register'</span>, <span class="c-kw">async</span> (req, res) => {
+<br>  <span class="c-kw">const</span> hash = <span class="c-kw">await</span> bcrypt.<span class="c-fn">hash</span>(req.body.password, <span class="c-str">12</span>);
+<br>  <span class="c-kw">const</span> user = <span class="c-kw">await</span> User.<span class="c-fn">create</span>({ ...req.body, password: hash });
+<br>  <span class="c-kw">const</span> token = jwt.<span class="c-fn">sign</span>({ id: user.id }, <span class="c-key">SECRET</span>);
+<br>  res.<span class="c-fn">json</span>({ token });
+<br>});
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- TAB: LOGIN -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-login">
+    <div class="main-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon red">🔑</div>
+          <div>
+            <div class="card-title">Login Akun</div>
+            <div class="card-sub">Email & Password</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email atau Username</label>
+          <input class="form-input" type="text" id="loginEmail" placeholder="budi@email.com atau @budi" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="pw-wrapper">
+            <input class="form-input" type="password" id="loginPw" placeholder="Password kamu" />
+            <button class="pw-toggle" onclick="togglePw('loginPw', this)">👁️</button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+          <a href="#" class="link" onclick="switchTab('magic')">Lupa password? Kirim magic link →</a>
+        </div>
+        <button class="btn btn-primary" onclick="doLogin()">
+          <span id="loginTxt">Masuk</span>
+          <div class="loading-ring" id="loginLoader"></div>
+        </button>
+        <div class="divider">atau lanjut dengan</div>
+        <button class="btn btn-google" onclick="doOAuth('Google')">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Lanjut dengan Google
+        </button>
+        <button class="btn btn-github" onclick="doOAuth('GitHub')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          Lanjut dengan GitHub
+        </button>
+        <div class="form-footer">
+          <span>Belum punya akun?</span>
+          <a href="#" class="link" onclick="switchTab('signup')">Daftar gratis →</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon red">🔒</div>
+          <div>
+            <div class="card-title">Keamanan Login</div>
+            <div class="card-sub">Yang terjadi di balik layar</div>
+          </div>
+        </div>
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-num done">✓</div>
+            <div><strong>Cari user di database</strong><br><span style="color:var(--muted);font-size:0.78rem;">SELECT * FROM users WHERE email = ?</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num done">✓</div>
+            <div><strong>Verifikasi password dengan bcrypt.compare()</strong><br><span style="color:var(--muted);font-size:0.78rem;">Bandingkan hash, bukan plain text</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num done">✓</div>
+            <div><strong>Rate limiting &amp; brute force protection</strong><br><span style="color:var(--muted);font-size:0.78rem;">Max 5 percobaan, lalu lockout 15 menit</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num done">✓</div>
+            <div><strong>Generate JWT + Refresh Token</strong><br><span style="color:var(--muted);font-size:0.78rem;">Access token: 15 mnt, Refresh: 7 hari</span></div>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="c-kw">const</span> valid = <span class="c-kw">await</span> bcrypt.<span class="c-fn">compare</span>(password, user.hash);
+<br><span class="c-kw">if</span> (!valid) <span class="c-kw">return</span> res.<span class="c-fn">status</span>(<span class="c-str">401</span>).<span class="c-fn">json</span>({ error: <span class="c-str">'Wrong credentials'</span> });
+<br>
+<br><span class="c-kw">const</span> access = jwt.<span class="c-fn">sign</span>({ uid }, secret, { expiresIn: <span class="c-str">'15m'</span> });
+<br><span class="c-kw">const</span> refresh = jwt.<span class="c-fn">sign</span>({ uid }, refreshSecret, { expiresIn: <span class="c-str">'7d'</span> });
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- TAB: OAUTH -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-oauth">
+    <div class="main-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon blue">🌐</div>
+          <div>
+            <div class="card-title">OAuth 2.0 — Login Sosial</div>
+            <div class="card-sub">Tanpa perlu ingat password</div>
+          </div>
+        </div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:20px;line-height:1.6;">Pilih provider untuk login. Kamu akan diarahkan ke halaman mereka untuk memberikan izin, lalu balik ke aplikasi kita.</p>
+        
+        <button class="btn btn-google" style="margin-bottom:12px;" onclick="doOAuthFlow('Google')">
+          <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          <strong>Login dengan Google</strong>
+        </button>
+        <button class="btn btn-github" style="margin-bottom:12px;" onclick="doOAuthFlow('GitHub')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          <strong>Login dengan GitHub</strong>
+        </button>
+        <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-bottom:12px;" onclick="doOAuthFlow('Discord')">
+          <span style="font-size:1.1rem;">🎮</span>
+          <strong>Login dengan Discord</strong>
+        </button>
+        <button class="btn" style="background:var(--surface2);border:1px solid var(--border);" onclick="doOAuthFlow('Apple')">
+          <span style="font-size:1.1rem;">🍎</span>
+          <strong>Login dengan Apple</strong>
+        </button>
+
+        <div id="oauthProgress" style="display:none;margin-top:20px;">
+          <div style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;font-family:'DM Mono',monospace;" id="oauthStatus"></div>
+          <div class="flow" id="oauthFlow">
+            <div class="flow-step" id="of1"><div class="flow-num" id="ofn1">1</div><div><strong>Redirect ke Provider</strong></div></div>
+            <div class="flow-step" id="of2"><div class="flow-num" id="ofn2">2</div><div><strong>User memberi izin</strong></div></div>
+            <div class="flow-step" id="of3"><div class="flow-num" id="ofn3">3</div><div><strong>Callback dengan code</strong></div></div>
+            <div class="flow-step" id="of4"><div class="flow-num" id="ofn4">4</div><div><strong>Tukar code → access token</strong></div></div>
+            <div class="flow-step" id="of5"><div class="flow-num" id="ofn5">5</div><div><strong>Ambil profil user ✓</strong></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon blue">📖</div>
+          <div>
+            <div class="card-title">OAuth 2.0 Flow</div>
+            <div class="card-sub">Cara kerja authorization code flow</div>
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div class="info-card" style="margin-bottom:12px;">
+            <h4>🔄 Authorization Code Flow</h4>
+            <p>Flow paling aman. App kamu minta izin → dapat code → tukar ke token. Code hanya sekali pakai dan expire cepat.</p>
+          </div>
+          <div class="info-card" style="margin-bottom:12px;">
+            <h4>🔑 Scope yang diminta</h4>
+            <p>Izin spesifik: <code style="color:var(--accent3)">email profile openid</code>. Jangan minta izin lebih dari yang dibutuhkan!</p>
+          </div>
+          <div class="info-card">
+            <h4>🛡️ State Parameter</h4>
+            <p>Random string untuk mencegah CSRF attack. Wajib divalidasi saat callback datang.</p>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="c-comment">// URL redirect ke Google OAuth</span>
+<br><span class="c-kw">const</span> url = <span class="c-str">`https://accounts.google.com/o/oauth2/v2/auth?
+<br>  client_id=${CLIENT_ID}
+<br>  &redirect_uri=${CALLBACK_URL}
+<br>  &response_type=code
+<br>  &scope=email profile openid
+<br>  &state=${randomState}`</span>;
+<br>
+<br>res.<span class="c-fn">redirect</span>(url); <span class="c-comment">// kirim user ke Google</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- TAB: MAGIC LINK -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-magic">
+    <div class="main-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon red">✨</div>
+          <div>
+            <div class="card-title">Magic Link via Email</div>
+            <div class="card-sub">Login tanpa password sama sekali</div>
+          </div>
+        </div>
+
+        <div id="magicStep1">
+          <p style="color:var(--muted);font-size:0.85rem;margin-bottom:20px;line-height:1.6;">Masukkan email kamu. Kami akan kirim link ajaib — klik link itu dan langsung masuk! Tidak perlu ingat password.</p>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-input" type="email" id="magicEmail" placeholder="kamu@email.com" />
+          </div>
+          <button class="btn btn-magic" onclick="sendMagicLink()">
+            <span id="magicTxt">✨ Kirim Magic Link</span>
+            <div class="loading-ring" id="magicLoader"></div>
+          </button>
+        </div>
+
+        <div id="magicStep2" style="display:none;">
+          <div style="text-align:center;padding:20px 0;">
+            <div style="font-size:3rem;margin-bottom:16px;">📬</div>
+            <h3 style="font-family:'Syne',sans-serif;margin-bottom:8px;">Cek inbox kamu!</h3>
+            <p style="color:var(--muted);font-size:0.85rem;margin-bottom:20px;" id="magicSentTo"></p>
+          </div>
+
+          <!-- Simulasi email preview -->
+          <div style="background:#0d0d14;border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+              <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:grid;place-items:center;font-size:0.9rem;">🔐</div>
+              <div>
+                <div style="font-size:0.82rem;font-weight:600;">AuthLab</div>
+                <div style="font-size:0.72rem;color:var(--muted);">noreply@authlab.io</div>
+              </div>
+            </div>
+            <div style="font-size:0.85rem;color:var(--muted);margin-bottom:14px;">Hi! Kamu minta login ke AuthLab. Klik tombol di bawah:</div>
+            <button class="btn btn-magic" style="width:auto;padding:10px 24px;" onclick="clickMagicLink()">🔗 Masuk ke AuthLab</button>
+            <div style="margin-top:12px;font-size:0.72rem;color:var(--muted);">Link ini expire dalam <strong>15 menit</strong> dan hanya bisa dipakai sekali.</div>
+            <div style="margin-top:8px;font-family:'DM Mono',monospace;font-size:0.68rem;color:#3d3d5c;word-break:break-all;">https://authlab.io/auth/verify?token=eyJh...x9k2&expires=1h</div>
+          </div>
+
+          <button class="btn" style="background:var(--surface2);border:1px solid var(--border);font-size:0.82rem;" onclick="resetMagic()">← Kirim ulang ke email lain</button>
+        </div>
+
+        <div id="magicStep3" style="display:none;text-align:center;padding:20px 0;">
+          <div style="font-size:3rem;margin-bottom:16px;animation:fadeUp 0.5s ease;">🎉</div>
+          <h3 style="font-family:'Syne',sans-serif;margin-bottom:8px;color:var(--accent3);">Berhasil Masuk!</h3>
+          <p style="color:var(--muted);font-size:0.85rem;margin-bottom:20px;">Magic link valid & kamu sudah terautentikasi.</p>
+          <div class="token-box" style="display:block;text-align:left;">
+            <div class="token-label">Session Token</div>
+            <div class="token-value" id="magicToken"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:16px;" onclick="resetMagic()">Coba lagi</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon red">🔧</div>
+          <div>
+            <div class="card-title">Cara Implementasi</div>
+            <div class="card-sub">Magic link di backend</div>
+          </div>
+        </div>
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-num done">1</div>
+            <div><strong>Generate token unik (UUID/crypto)</strong><br><span style="color:var(--muted);font-size:0.78rem;">Token random 32+ byte, tidak bisa ditebak</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num done">2</div>
+            <div><strong>Simpan token di DB dengan expiry</strong><br><span style="color:var(--muted);font-size:0.78rem;">Tabel: magic_links(email, token, expires_at)</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num done">3</div>
+            <div><strong>Kirim email dengan link</strong><br><span style="color:var(--muted);font-size:0.78rem;">Pakai Resend, SendGrid, atau Nodemailer</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num done">4</div>
+            <div><strong>Verifikasi token saat diklik</strong><br><span style="color:var(--muted);font-size:0.78rem;">Cek DB, validasi expiry, hapus token (one-use)</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num done">5</div>
+            <div><strong>Buat sesi / JWT untuk user</strong><br><span style="color:var(--muted);font-size:0.78rem;">Login berhasil!</span></div>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="c-comment">// Generate & simpan magic token</span>
+<br><span class="c-kw">const</span> token = crypto.<span class="c-fn">randomBytes</span>(<span class="c-str">32</span>).<span class="c-fn">toString</span>(<span class="c-str">'hex'</span>);
+<br><span class="c-kw">const</span> expires = <span class="c-kw">new</span> <span class="c-fn">Date</span>(Date.<span class="c-fn">now</span>() + 15 * 60000);
+<br><span class="c-kw">await</span> db.<span class="c-fn">insert</span>({ email, token, expires });
+<br>
+<br><span class="c-comment">// Kirim link via email</span>
+<br><span class="c-kw">await</span> resend.<span class="c-fn">send</span>({
+<br>  to: email,
+<br>  subject: <span class="c-str">'Login ke AuthLab'</span>,
+<br>  html: <span class="c-str">`&lt;a href="/verify?t=${token}"&gt;Masuk&lt;/a&gt;`</span>
+<br>});
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- TAB: OTP -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-otp">
+    <div class="main-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon green">📱</div>
+          <div>
+            <div class="card-title">OTP via SMS / Email</div>
+            <div class="card-sub">Kode 6 digit sekali pakai</div>
+          </div>
+        </div>
+
+        <div id="otpStep1">
+          <div class="form-group">
+            <label class="form-label">Nomor HP / Email</label>
+            <div class="input-row">
+              <select class="form-input" style="max-width:100px;">
+                <option>🇮🇩 +62</option>
+                <option>🇺🇸 +1</option>
+                <option>🇬🇧 +44</option>
+                <option>🇸🇬 +65</option>
+              </select>
+              <input class="form-input" type="text" id="phoneInput" placeholder="812-xxxx-xxxx" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kirim via</label>
+            <div class="two-col">
+              <button class="btn" id="smsBtnChoice" style="background:rgba(67,233,123,0.1);border:1px solid var(--accent3);color:var(--accent3);" onclick="selectOTPMethod('sms')">📱 SMS</button>
+              <button class="btn" id="waBtn" style="background:var(--surface2);border:1px solid var(--border);" onclick="selectOTPMethod('wa')">💬 WhatsApp</button>
+            </div>
+          </div>
+          <button class="btn btn-otp" onclick="sendOTP()">
+            <span id="otpSendTxt">Kirim Kode OTP</span>
+            <div class="loading-ring" id="otpLoader"></div>
+          </button>
+        </div>
+
+        <div id="otpStep2" style="display:none;">
+          <p style="text-align:center;color:var(--muted);font-size:0.85rem;margin-bottom:4px;">Masukkan kode 6 digit yang dikirim ke</p>
+          <p style="text-align:center;font-weight:600;margin-bottom:20px;" id="otpSentTo"></p>
+          
+          <div class="otp-container">
+            <input class="otp-input" maxlength="1" id="otp0" oninput="otpNext(this,0)" onkeydown="otpBack(event,0)" />
+            <input class="otp-input" maxlength="1" id="otp1" oninput="otpNext(this,1)" onkeydown="otpBack(event,1)" />
+            <input class="otp-input" maxlength="1" id="otp2" oninput="otpNext(this,2)" onkeydown="otpBack(event,2)" />
+            <input class="otp-input" maxlength="1" id="otp3" oninput="otpNext(this,3)" onkeydown="otpBack(event,3)" />
+            <input class="otp-input" maxlength="1" id="otp4" oninput="otpNext(this,4)" onkeydown="otpBack(event,4)" />
+            <input class="otp-input" maxlength="1" id="otp5" oninput="otpNext(this,5)" onkeydown="otpBack(event,5)" />
+          </div>
+
+          <div style="text-align:center;margin-bottom:16px;">
+            <span style="font-size:0.8rem;color:var(--muted);">Kirim ulang dalam </span>
+            <span style="font-size:0.8rem;color:var(--accent3);font-family:'DM Mono',monospace;" id="otpCountdown">60</span>
+            <span style="font-size:0.8rem;color:var(--muted);">s</span>
+          </div>
+
+          <button class="btn btn-otp" onclick="verifyOTP()">Verifikasi Kode</button>
+          <button class="btn" style="background:transparent;border:1px solid var(--border);margin-top:10px;font-size:0.82rem;" onclick="resetOTP()">← Ganti nomor</button>
+        </div>
+
+        <div id="otpStep3" style="display:none;text-align:center;padding:20px 0;">
+          <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+          <h3 style="font-family:'Syne',sans-serif;color:var(--accent3);margin-bottom:8px;">Verifikasi Berhasil!</h3>
+          <p style="color:var(--muted);font-size:0.85rem;margin-bottom:16px;">Nomor telepon kamu sudah terverifikasi.</p>
+          <div style="background:rgba(67,233,123,0.08);border:1px solid rgba(67,233,123,0.3);border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:0.8rem;">
+            <div style="color:var(--muted);">OTP yang kamu masukkan:</div>
+            <div style="font-size:1.4rem;letter-spacing:6px;color:var(--accent3);margin-top:6px;" id="enteredOTP"></div>
+          </div>
+          <button class="btn btn-otp" style="margin-top:16px;" onclick="resetOTP()">Coba lagi</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon green">🔢</div>
+          <div>
+            <div class="card-title">Cara Kerja TOTP/OTP</div>
+            <div class="card-sub">Time-based One Time Password</div>
+          </div>
+        </div>
+
+        <div class="phone-preview" id="smsPreview">
+          <div style="font-size:0.75rem;color:var(--muted);margin-bottom:10px;font-family:'DM Mono',monospace;">📱 SMS diterima</div>
+          <div class="sms-bubble">
+            <div style="color:var(--muted);font-size:0.78rem;">AuthLab</div>
+            <div style="margin:6px 0;font-size:0.85rem;">Kode verifikasi kamu:</div>
+            <div class="sms-code" id="generatedOTP">--</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:8px;">Berlaku 10 menit. Jangan bagikan ke siapapun!</div>
+          </div>
+        </div>
+
+        <div class="info-card" style="margin-top:14px;margin-bottom:12px;">
+          <h4>⏱️ Time-based OTP (TOTP)</h4>
+          <p>Kode berubah setiap 30/60 detik. Dihitung dari: <code style="color:var(--accent3)">HMAC(secret, floor(time/30))</code>. Dipakai di 2FA apps (Google Authenticator).</p>
+        </div>
+        <div class="info-card" style="margin-bottom:12px;">
+          <h4>📨 SMS/Email OTP</h4>
+          <p>Server generate kode random 6 digit, simpan di DB dengan expiry, kirim via SMS/email. Lebih sederhana tapi butuh provider eksternal.</p>
+        </div>
+        <div class="code-block">
+<span class="c-comment">// Generate OTP 6 digit</span>
+<br><span class="c-kw">const</span> otp = Math.<span class="c-fn">floor</span>(100000 + Math.<span class="c-fn">random</span>() * 900000);
+<br><span class="c-kw">const</span> expires = Date.<span class="c-fn">now</span>() + 10 * 60 * 1000; <span class="c-comment">// 10 mnt</span>
+<br>
+<br><span class="c-comment">// Verifikasi OTP</span>
+<br><span class="c-kw">if</span> (stored.otp !== input || Date.<span class="c-fn">now</span>() > stored.expires)
+<br>  <span class="c-kw">return</span> <span class="c-str">'OTP tidak valid atau expired'</span>;
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- TAB: JWT -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-jwt">
+    <div class="main-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon purple">🪙</div>
+          <div>
+            <div class="card-title">JWT Token Generator</div>
+            <div class="card-sub">Lihat struktur token secara visual</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">User ID</label>
+          <input class="form-input" id="jwtUid" value="user_abc123" oninput="buildJWT()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="jwtEmail" value="budi@email.com" oninput="buildJWT()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select class="form-input" id="jwtRole" onchange="buildJWT()">
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+            <option value="moderator">moderator</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expiry</label>
+          <select class="form-input" id="jwtExp" onchange="buildJWT()">
+            <option value="15m">15 menit (access token)</option>
+            <option value="1h">1 jam</option>
+            <option value="7d" selected>7 hari (refresh token)</option>
+            <option value="30d">30 hari</option>
+          </select>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="token-label" style="color:var(--muted);font-size:0.72rem;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Token yang dihasilkan</div>
+          <div style="background:#0d0d14;border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:0.7rem;word-break:break-all;line-height:1.8;" id="jwtDisplay">
+            <span style="color:#ff6b6b;" id="jwtHeader"></span>.<span style="color:#f7b731;" id="jwtPayload"></span>.<span style="color:var(--accent3);" id="jwtSig">SIGNATURE</span>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:8px;font-size:0.72rem;font-family:'DM Mono',monospace;">
+            <span style="color:#ff6b6b;">■ Header</span>
+            <span style="color:#f7b731;">■ Payload</span>
+            <span style="color:var(--accent3);">■ Signature</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon purple">🔍</div>
+          <div>
+            <div class="card-title">Decode JWT</div>
+            <div class="card-sub">Isi dari token di atas</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div class="token-label" style="color:#ff6b6b;margin-bottom:6px;">HEADER (Algorithm)</div>
+          <div class="code-block" id="jwtHeaderDecode" style="margin-top:0;"></div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div class="token-label" style="color:#f7b731;margin-bottom:6px;">PAYLOAD (Data)</div>
+          <div class="code-block" id="jwtPayloadDecode" style="margin-top:0;"></div>
+        </div>
+        <div class="info-card">
+          <h4>⚠️ Penting tentang JWT</h4>
+          <p>Payload JWT bisa dibaca siapapun — <strong style="color:var(--accent2);">jangan simpan password atau data sensitif di sini!</strong> JWT hanya "ditandatangani" bukan dienkripsi. Gunakan HTTPS selalu.</p>
+        </div>
+        <div class="code-block" style="margin-top:12px;">
+<span class="c-comment">// Verifikasi di server</span>
+<br><span class="c-kw">const</span> decoded = jwt.<span class="c-fn">verify</span>(token, <span class="c-key">SECRET</span>);
+<br><span class="c-comment">// Throws jika expired atau signature invalid</span>
+<br>console.<span class="c-fn">log</span>(decoded.uid, decoded.role);
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM INFO PANEL -->
+  <div class="full-card" style="margin-top:24px;animation: fadeUp 0.7s ease 0.4s both;">
+    <div class="section-title">🗺️ Mana yang Harus Dipilih?</div>
+    <div class="section-sub">Perbandingan cepat metode autentikasi</div>
+    <div class="info-grid">
+      <div class="info-card">
+        <h4>✍️ Email + Password</h4>
+        <p>Paling umum. User perlu ingat password. Wajib pakai bcrypt, HTTPS, dan pertimbangkan 2FA. Cocok untuk hampir semua app.</p>
+      </div>
+      <div class="info-card">
+        <h4>🌐 OAuth / Social Login</h4>
+        <p>Paling mudah buat user. Tidak perlu manage password sama sekali. Cocok kalau target user pasti punya Google/GitHub.</p>
+      </div>
+      <div class="info-card">
+        <h4>✨ Magic Link</h4>
+        <p>Passwordless & secure. User perlu akses email. UX smooth, cocok untuk SaaS B2B atau tool internal tim.</p>
+      </div>
+      <div class="info-card">
+        <h4>📱 OTP SMS/Email</h4>
+        <p>Bagus untuk 2FA atau verifikasi nomor HP. Biaya SMS bisa tinggi. Email OTP gratis tapi masuk spam kadang.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✅</span>
+  <span id="toastMsg">Berhasil!</span>
+</div>
+
+<script>
+// ── UTILITIES ──────────────────────────────────
+
+function toast(msg, icon = '✅') {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = icon;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function setLoading(txtId, loaderId, loading) {
+  document.getElementById(txtId).style.display = loading ? 'none' : 'inline';
+  document.getElementById(loaderId).style.display = loading ? 'block' : 'none';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function b64(str) { return btoa(unescape(encodeURIComponent(str))).replace(/=/g,''); }
+function randomHex(n) { return [...Array(n)].map(() => Math.floor(Math.random()*16).toString(16)).join(''); }
+
+// ── TAB SWITCHING ──────────────────────────────
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  const tabs = ['signup','login','oauth','magic','otp','jwt'];
+  const idx = tabs.indexOf(tab);
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  if (tab === 'jwt') buildJWT();
+}
+
+// ── TOGGLE PASSWORD ────────────────────────────
+
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁️'; }
+}
+
+// ── PASSWORD STRENGTH ──────────────────────────
+
+function checkStrength() {
+  const pw = document.getElementById('signupPw').value;
+  const checks = [
+    { id: 'c-len', ok: pw.length >= 8 },
+    { id: 'c-upper', ok: /[A-Z]/.test(pw) },
+    { id: 'c-num', ok: /[0-9]/.test(pw) },
+    { id: 'c-sym', ok: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) }
+  ];
+  let score = checks.filter(c => c.ok).length;
+  checks.forEach(c => {
+    const li = document.getElementById(c.id);
+    li.classList.toggle('ok', c.ok);
+    li.querySelector('.icon').textContent = c.ok ? '✓' : '○';
+  });
+  const colors = ['', '#ff6b6b', '#f7b731', '#6c63ff', '#43e97b'];
+  const labels = ['', 'Lemah 😬', 'Cukup 🤔', 'Bagus 💪', 'Kuat sekali 🔥'];
+  const fill = document.getElementById('strengthFill');
+  fill.style.width = score * 25 + '%';
+  fill.style.background = colors[score] || 'transparent';
+  document.getElementById('strengthLabel').textContent = labels[score] || '';
+  document.getElementById('strengthLabel').style.color = colors[score] || 'transparent';
+}
+
+function checkConfirm() {
+  const pw = document.getElementById('signupPw').value;
+  const cpw = document.getElementById('confirmPw').value;
+  const el = document.getElementById('confirmStatus');
+  if (!cpw) { el.textContent = ''; return; }
+  if (pw === cpw) { el.style.color = 'var(--accent3)'; el.textContent = '✓ Password cocok'; }
+  else { el.style.color = 'var(--accent2)'; el.textContent = '✗ Password tidak sama'; }
+}
+
+// ── USERNAME CHECK ─────────────────────────────
+
+let usernameTimer;
+function checkUsername() {
+  const el = document.getElementById('usernameStatus');
+  const val = document.getElementById('usernameInput').value;
+  clearTimeout(usernameTimer);
+  if (!val) { el.textContent = ''; return; }
+  el.style.color = 'var(--muted)'; el.textContent = 'Mengecek ketersediaan...';
+  usernameTimer = setTimeout(() => {
+    const taken = ['@admin','@budi','@user1','@test'];
+    if (taken.includes(val.toLowerCase())) {
+      el.style.color = 'var(--accent2)'; el.textContent = '✗ Username sudah dipakai';
+    } else if (val.length < 3) {
+      el.style.color = '#f7b731'; el.textContent = '⚠ Terlalu pendek';
+    } else {
+      el.style.color = 'var(--accent3)'; el.textContent = '✓ Username tersedia!';
+    }
+  }, 700);
+}
+
+// ── SIGN UP ────────────────────────────────────
+
+async function doSignup() {
+  setLoading('signupTxt','signupLoader',true);
+  // Animate flow steps
+  const steps = ['sf1','sf2','sf3','sf4','sf5'];
+  for (let i = 0; i < steps.length; i++) {
+    await sleep(400);
+    const el = document.getElementById(steps[i]);
+    el.classList.add('active-step');
+    el.querySelector('.flow-num').classList.add('active');
+  }
+  await sleep(500);
+  setLoading('signupTxt','signupLoader',false);
+  steps.forEach(s => {
+    document.getElementById(s).classList.remove('active-step');
+    document.getElementById(s).classList.add('done-step');
+    document.getElementById(s).querySelector('.flow-num').className = 'flow-num done';
+    document.getElementById(s).querySelector('.flow-num').textContent = '✓';
+  });
+  toast('Akun berhasil dibuat! Cek email verifikasi 📬', '🎉');
+}
+
+// ── LOGIN ──────────────────────────────────────
+
+async function doLogin() {
+  setLoading('loginTxt','loginLoader',true);
+  await sleep(1500);
+  setLoading('loginTxt','loginLoader',false);
+  toast('Login berhasil! JWT token dibuat ✅', '🔑');
+}
+
+// ── OAUTH ──────────────────────────────────────
+
+async function doOAuth(provider) {
+  toast(`Membuka ${provider} OAuth...`, '🌐');
+}
+
+async function doOAuthFlow(provider) {
+  document.getElementById('oauthProgress').style.display = 'block';
+  document.getElementById('oauthStatus').textContent = `Memulai OAuth flow dengan ${provider}...`;
+  const steps = ['of1','of2','of3','of4','of5'];
+  const nums = ['ofn1','ofn2','ofn3','ofn4','ofn5'];
+  for (let i = 0; i < steps.length; i++) {
+    await sleep(500);
+    document.getElementById(steps[i]).classList.add('active-step');
+    document.getElementById(nums[i]).className = 'flow-num active';
+    document.getElementById(nums[i]).textContent = (i+1);
+    if (i > 0) {
+      document.getElementById(steps[i-1]).classList.remove('active-step');
+      document.getElementById(steps[i-1]).classList.add('done-step');
+      document.getElementById(nums[i-1]).className = 'flow-num done';
+      document.getElementById(nums[i-1]).textContent = '✓';
+    }
+  }
+  await sleep(500);
+  document.getElementById(steps[4]).classList.remove('active-step');
+  document.getElementById(steps[4]).classList.add('done-step');
+  document.getElementById(nums[4]).className = 'flow-num done';
+  document.getElementById(nums[4]).textContent = '✓';
+  document.getElementById('oauthStatus').textContent = `✅ Login dengan ${provider} berhasil!`;
+  toast(`${provider} OAuth selesai! Profil berhasil diambil 🎉`, '🌐');
+}
+
+// ── MAGIC LINK ─────────────────────────────────
+
+async function sendMagicLink() {
+  const email = document.getElementById('magicEmail').value;
+  if (!email || !email.includes('@')) { toast('Masukkan email yang valid!', '⚠️'); return; }
+  setLoading('magicTxt','magicLoader',true);
+  await sleep(1200);
+  setLoading('magicTxt','magicLoader',false);
+  document.getElementById('magicStep1').style.display = 'none';
+  document.getElementById('magicSentTo').textContent = `Link dikirim ke: ${email}`;
+  document.getElementById('magicStep2').style.display = 'block';
+}
+
+async function clickMagicLink() {
+  document.getElementById('magicStep2').style.display = 'none';
+  const token = `eyJhbGciOiJIUzI1NiJ9.${b64(JSON.stringify({email:'user@email.com',iat:Date.now()}))}.${randomHex(32)}`;
+  document.getElementById('magicToken').textContent = token;
+  document.getElementById('magicStep3').style.display = 'block';
+  toast('Magic link valid! Sesi dibuat 🎉', '✨');
+}
+
+function resetMagic() {
+  document.getElementById('magicStep1').style.display = 'block';
+  document.getElementById('magicStep2').style.display = 'none';
+  document.getElementById('magicStep3').style.display = 'none';
+  document.getElementById('magicEmail').value = '';
+}
+
+// ── OTP ────────────────────────────────────────
+
+let otpMethod = 'sms';
+let otpCountdownTimer;
+let generatedCode = '';
+
+function selectOTPMethod(method) {
+  otpMethod = method;
+  const sms = document.getElementById('smsBtnChoice');
+  const wa = document.getElementById('waBtn');
+  if (method === 'sms') {
+    sms.style.background = 'rgba(67,233,123,0.1)'; sms.style.borderColor = 'var(--accent3)'; sms.style.color = 'var(--accent3)';
+    wa.style.background = 'var(--surface2)'; wa.style.borderColor = 'var(--border)'; wa.style.color = 'var(--text)';
+  } else {
+    wa.style.background = 'rgba(67,233,123,0.1)'; wa.style.borderColor = 'var(--accent3)'; wa.style.color = 'var(--accent3)';
+    sms.style.background = 'var(--surface2)'; sms.style.borderColor = 'var(--border)'; sms.style.color = 'var(--text)';
+  }
+}
+
+async function sendOTP() {
+  const phone = document.getElementById('phoneInput').value;
+  if (!phone) { toast('Masukkan nomor HP!', '⚠️'); return; }
+  setLoading('otpSendTxt','otpLoader',true);
+  await sleep(1000);
+  setLoading('otpSendTxt','otpLoader',false);
+  generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+  document.getElementById('generatedOTP').textContent = generatedCode;
+  document.getElementById('smsPreview').style.display = 'block';
+  document.getElementById('otpSentTo').textContent = `+62 ${phone}`;
+  document.getElementById('otpStep1').style.display = 'none';
+  document.getElementById('otpStep2').style.display = 'block';
+  document.getElementById('otp0').focus();
+  // Countdown
+  let t = 60;
+  document.getElementById('otpCountdown').textContent = t;
+  otpCountdownTimer = setInterval(() => {
+    t--;
+    document.getElementById('otpCountdown').textContent = t;
+    if (t <= 0) clearInterval(otpCountdownTimer);
+  }, 1000);
+  toast(`Kode OTP dikirim! Kode demo: ${generatedCode} 📱`, '📱');
+}
+
+function otpNext(el, idx) {
+  el.classList.toggle('filled', el.value !== '');
+  if (el.value && idx < 5) document.getElementById('otp' + (idx+1)).focus();
+  // Auto verify
+  const code = [0,1,2,3,4,5].map(i => document.getElementById('otp'+i).value).join('');
+  if (code.length === 6) setTimeout(() => verifyOTP(), 200);
+}
+
+function otpBack(e, idx) {
+  if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+    document.getElementById('otp'+(idx-1)).focus();
+  }
+}
+
+function verifyOTP() {
+  const entered = [0,1,2,3,4,5].map(i => document.getElementById('otp'+i).value).join('');
+  if (entered.length < 6) { toast('Masukkan 6 digit kode!', '⚠️'); return; }
+  clearInterval(otpCountdownTimer);
+  document.getElementById('otpStep2').style.display = 'none';
+  if (entered === generatedCode || entered === '123456') {
+    document.getElementById('enteredOTP').textContent = entered;
+    document.getElementById('otpStep3').style.display = 'block';
+    toast('OTP valid! Nomor terverifikasi ✅', '✅');
+  } else {
+    toast(`OTP salah! Coba kode demo: ${generatedCode}`, '❌');
+    document.getElementById('otpStep2').style.display = 'block';
+    [0,1,2,3,4,5].forEach(i => { const el = document.getElementById('otp'+i); el.value = ''; el.classList.remove('filled'); });
+    document.getElementById('otp0').focus();
+  }
+}
+
+function resetOTP() {
+  clearInterval(otpCountdownTimer);
+  document.getElementById('otpStep1').style.display = 'block';
+  document.getElementById('otpStep2').style.display = 'none';
+  document.getElementById('otpStep3').style.display = 'none';
+  document.getElementById('smsPreview').style.display = 'none';
+  document.getElementById('phoneInput').value = '';
+  [0,1,2,3,4,5].forEach(i => { const el = document.getElementById('otp'+i); el.value = ''; el.classList.remove('filled'); });
+}
+
+// ── JWT BUILDER ────────────────────────────────
+
+function buildJWT() {
+  const uid = document.getElementById('jwtUid').value || 'user_abc123';
+  const email = document.getElementById('jwtEmail').value || 'user@email.com';
+  const role = document.getElementById('jwtRole').value;
+  const expiry = document.getElementById('jwtExp').value;
+  
+  const expMap = {'15m': 900, '1h': 3600, '7d': 604800, '30d': 2592000};
+  const iat = Math.floor(Date.now()/1000);
+  const exp = iat + expMap[expiry];
+  
+  const header = {alg:'HS256',typ:'JWT'};
+  const payload = {sub: uid, email, role, iat, exp, iss:'authlab.io'};
+  
+  const h = b64(JSON.stringify(header));
+  const p = b64(JSON.stringify(payload));
+  const sig = randomHex(16) + randomHex(16);
+  
+  document.getElementById('jwtHeader').textContent = h;
+  document.getElementById('jwtPayload').textContent = p;
+  document.getElementById('jwtSig').textContent = sig.substring(0,20)+'...';
+  
+  document.getElementById('jwtHeaderDecode').innerHTML = 
+    `<span class="c-key">"alg"</span>: <span class="c-str">"HS256"</span>,\n<span class="c-key">"typ"</span>: <span class="c-str">"JWT"</span>`;
+  
+  const expDate = new Date(exp*1000).toLocaleString('id-ID');
+  document.getElementById('jwtPayloadDecode').innerHTML = 
+    `<span class="c-key">"sub"</span>: <span class="c-str">"${uid}"</span>,\n` +
+    `<span class="c-key">"email"</span>: <span class="c-str">"${email}"</span>,\n` +
+    `<span class="c-key">"role"</span>: <span class="c-str">"${role}"</span>,\n` +
+    `<span class="c-key">"iat"</span>: ${iat},\n` +
+    `<span class="c-key">"exp"</span>: ${exp},\n` +
+    `<span class="c-comment">// Expire: ${expDate}</span>`;
+}
+
+// Init JWT on load
+buildJWT();
+</script>
+</body>
+</html>
