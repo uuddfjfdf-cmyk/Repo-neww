@@ -1598,5 +1598,51 @@ function buildJWT() {
 // Init JWT on load
 buildJWT();
 </script>
+  <script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+ getAuth,
+ GoogleAuthProvider,
+ signInWithPopup
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+ apiKey: "AIzaSyAK-7mw3nOgw0T5D4xbCDQcF-LIkKgLZSI",
+ authDomain: "auth-66827.firebaseapp.com",
+ projectId: "auth-66827",
+ appId: "1:336462577073:web:3152c76e465a7a4c841190"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+const provider = new GoogleAuthProvider();
+
+window.loginGoogle = async () => {
+
+ try {
+
+   const result = await signInWithPopup(auth, provider);
+
+   const user = result.user;
+
+   document.getElementById("status").innerHTML =
+   `
+   Anda berhasil login dengan email:
+   <br><br>
+   ${user.email}
+   `;
+
+ } catch(err) {
+
+   alert(err.message);
+
+ }
+
+}
+  </script>
 </body>
 </html>
