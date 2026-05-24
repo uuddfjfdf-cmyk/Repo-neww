@@ -1454,19 +1454,64 @@ async function sendMagicLink() {
   const email = document.getElementById('magicEmail').value;
   if (!email || !email.includes('@')) { toast('Masukkan email yang valid!', '⚠️'); return; }
   setLoading('magicTxt','magicLoader',true);
-  await sleep(1200);
-  setLoading('magicTxt','magicLoader',false);
-  document.getElementById('magicStep1').style.display = 'none';
-  document.getElementById('magicSentTo').textContent = `Link dikirim ke: ${email}`;
-  document.getElementById('magicStep2').style.display = 'block';
+  try {
+    const res = await fetch('/api/auth/magic-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      document.getElementById('magicStep1').style.display = 'none';
+      document.getElementById('magicSentTo').textContent = `Link dikirim ke: ${email}`;
+      document.getElementById('magicStep2').style.display = 'block';
+      toast(data.message || 'Magic link berhasil dikirim! Cek inbox kamu 📬', '✉️');
+    } else {
+      toast(data.message || 'Gagal mengirim magic link. Coba lagi.', '❌');
+    }
+  } catch (err) {
+    console.error('sendMagicLink error:', err);
+    toast('Koneksi ke server gagal. Pastikan backend berjalan.', '❌');
+  } finally {
+    setLoading('magicTxt','magicLoader',false);
+  }
 }
 
 async function clickMagicLink() {
+  // Ambil token asli dari URL query param (dikirim backend via email link)
+  // Jika user klik dari halaman ini (demo), baca token dari URL: ?token=...
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+
   document.getElementById('magicStep2').style.display = 'none';
-  const token = `eyJhbGciOiJIUzI1NiJ9.${b64(JSON.stringify({email:'user@email.com',iat:Date.now()}))}.${randomHex(32)}`;
-  document.getElementById('magicToken').textContent = token;
-  document.getElementById('magicStep3').style.display = 'block';
-  toast('Magic link valid! Sesi dibuat 🎉', '✨');
+
+  if (!token) {
+    toast('Token tidak ditemukan di URL. Klik link dari email kamu.', '⚠️');
+    document.getElementById('magicStep2').style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/auth/verify-magic?token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if (res.ok && data.success) {
+      document.getElementById('magicToken').textContent = token;
+      document.getElementById('magicStep3').style.display = 'block';
+      // Simpan JWT dari backend jika tersedia
+      if (data.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken || '');
+      }
+      toast('Magic link valid! Sesi dibuat 🎉', '✨');
+    } else {
+      toast(data.message || 'Token tidak valid atau sudah expired.', '❌');
+      document.getElementById('magicStep2').style.display = 'block';
+    }
+  } catch (err) {
+    console.error('clickMagicLink error:', err);
+    toast('Koneksi ke server gagal. Pastikan backend berjalan.', '❌');
+    document.getElementById('magicStep2').style.display = 'block';
+  }
 }
 
 function resetMagic() {
@@ -1636,6 +1681,37 @@ window.loginGoogle = async () => {
     const user = result.user;
 
     console.log("Login Google berhasil:", user.email, user.displayName);
+
+    // ── Daftarkan / verifikasi user ke backend MongoDB ──────────────
+    let backendData = null;
+    try {
+      const backendRes = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email    : user.email,
+          firstName: user.displayName ? user.displayName.split(' ')[0] : '',
+          lastName : user.displayName ? user.displayName.split(' ').slice(1).join(' ') : '',
+          // Tidak ada password — backend simpan provider: 'google'
+          password : crypto.randomUUID(), // dummy agar schema tidak reject; provider='google' dipakai untuk login berikutnya
+        })
+      });
+      backendData = await backendRes.json();
+      // 409 = email sudah terdaftar (user lama) → lanjut normal, tidak error
+      if (backendRes.ok && backendData.accessToken) {
+        localStorage.setItem('accessToken', backendData.accessToken);
+        localStorage.setItem('refreshToken', backendData.refreshToken || '');
+        console.log("✅ User tersimpan di MongoDB:", backendData.user);
+      } else if (backendRes.status === 409) {
+        console.log("ℹ️  User sudah ada di MongoDB, login dilanjutkan.");
+      } else {
+        console.warn("⚠️  Backend response:", backendData?.message);
+      }
+    } catch (backendErr) {
+      console.error("⚠️  Gagal sinkronisasi ke backend:", backendErr.message);
+      // Tidak menggagalkan login Firebase — tampilkan peringatan saja
+    }
+    // ────────────────────────────────────────────────────────────────
 
     // Kembalikan tampilan button
     btn.disabled = false;
