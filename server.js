@@ -362,24 +362,42 @@ app.get('/api/auth/verify-magic', async (req, res) => {
     const { token } = req.query;
     if (!token) return respond(res, 400, false, 'Token diperlukan');
 
+    // Cari token yang valid dan belum dipakai
     const record = await TokenRecord.findOne({ token, type: 'magic', used: false });
-    if (!record)     return respond(res, 400, false, 'Token tidak valid');
+    if (!record)                       return respond(res, 400, false, 'Token tidak valid');
     if (new Date() > record.expiresAt) return respond(res, 400, false, 'Token sudah expired');
 
+    // Tandai token sebagai sudah dipakai (sekali pakai)
     record.used = true;
     await record.save();
 
+    // Cek apakah user sudah ada → login. Belum ada → register baru.
+    // Ini yang mencegah error E11000 duplicate key.
     let user = await User.findOne({ email: record.email });
     if (!user) {
+      // User baru: buat akun dengan provider magic
       user = await User.create({ email: record.email, provider: 'magic', isVerified: true });
+      console.log(`✅ User baru dibuat via magic link: ${record.email}`);
+    } else {
+      // User lama: langsung pakai, pastikan isVerified true
+      if (!user.isVerified) {
+        user.isVerified = true;
+        await user.save();
+      }
+      console.log(`✅ User existing login via magic link: ${record.email}`);
     }
 
+    // Buat JWT
     const accessToken  = signAccessToken(user._id);
     const refreshToken = signRefreshToken(user._id);
 
-    respond(res, 200, true, 'Login via magic link berhasil', {
-      user: user.toSafeJSON(), accessToken, refreshToken,
-    });
+    // Redirect ke frontend bawa accessToken di query string.
+    // Frontend ambil token dari URL lalu simpan ke localStorage.
+    const targetUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}?token=${accessToken}`
+      : `http://localhost:8080?token=${accessToken}`;
+
+    res.redirect(targetUrl);
 
   } catch (err) {
     console.error('Verify magic error:', err);
