@@ -11,10 +11,13 @@ const path = require('path');
 
 // ── DEBUG: CEK ENV VARS SAAT STARTUP ────────────
 console.log('🔍 ENV Check:');
-console.log('   NODE_ENV   :', process.env.NODE_ENV   || '(tidak di-set)');
-console.log('   PORT       :', process.env.PORT       || '(tidak di-set, default 3000)');
-console.log('   MONGO_URI  :', process.env.MONGO_URI  ? '✅ terbaca' : '❌ TIDAK TERBACA');
-console.log('   JWT_SECRET :', process.env.JWT_SECRET ? '✅ terbaca' : '❌ TIDAK TERBACA');
+console.log('   NODE_ENV       :', process.env.NODE_ENV       || '(tidak di-set)');
+console.log('   PORT           :', process.env.PORT           || '(tidak di-set, default 3000)');
+console.log('   MONGO_URI      :', process.env.MONGO_URI      ? '✅ terbaca' : '❌ TIDAK TERBACA');
+console.log('   JWT_SECRET     :', process.env.JWT_SECRET     ? '✅ terbaca' : '❌ TIDAK TERBACA');
+// 🔥 CONFIG: API KEY RESEND DI AMBIL DARI VARIABLE ENV DI SINI 🔥
+// 👉 Isi RESEND_API_KEY di file .env lokal atau tab Variables di Railway
+console.log('   RESEND_API_KEY :', process.env.RESEND_API_KEY ? '✅ terbaca' : '⚠️  BELUM DI-SET (magic link email tidak akan terkirim)');
 
 // ── VALIDASI ENV WAJIB (FAIL FAST) ──────────────
 const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
@@ -278,6 +281,17 @@ app.post('/api/auth/magic-link', async (req, res) => {
     const { email } = req.body;
     if (!email) return respond(res, 400, false, 'Email diperlukan');
 
+    // 🔥 CONFIG: API KEY RESEND DI AMBIL DARI VARIABLE ENV DI SINI 🔥
+    // 👉 Tambahkan RESEND_API_KEY=re_xxxx di file .env lokal atau
+    //    tab Variables di Railway agar email magic link bisa terkirim
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    if (!RESEND_API_KEY) {
+      console.error('❌ RESEND_API_KEY belum di-set! Magic link tidak bisa dikirim.');
+      console.error('   • Lokal  : tambahkan RESEND_API_KEY=re_xxxx di file .env');
+      console.error('   • Railway: buka Settings → Variables → tambahkan RESEND_API_KEY');
+      return respond(res, 500, false, 'Layanan email belum dikonfigurasi. Hubungi administrator.');
+    }
+
     const token     = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -289,11 +303,52 @@ app.post('/api/auth/magic-link', async (req, res) => {
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
       : (process.env.FRONTEND_URL || 'http://localhost:3000');
 
-    const link = `${baseUrl}/verify?token=${token}`;
+    // Link mengarah ke route backend verify-magic agar token langsung diproses & user ter-login
+    const link = `${baseUrl}/api/auth/verify-magic?token=${token}`;
 
-    // TODO: kirim via email (Nodemailer/Resend/SendGrid)
-    console.log(`[DEV] Magic link untuk ${email}: ${link}`);
-    respond(res, 200, true, 'Magic link berhasil dikirim (cek terminal di dev mode)');
+    // Kirim email via Resend API menggunakan fetch bawaan Node.js
+    const resendRes = await fetch('https://api.resend.com/emails', {
+      method : 'POST',
+      headers: {
+        'Content-Type' : 'application/json',
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from   : process.env.RESEND_FROM_EMAIL || 'AuthLab <onboarding@resend.dev>',
+        to     : [email],
+        subject: 'Magic Link Login — AuthLab',
+        html   : `
+          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb; border-radius: 12px;">
+            <h2 style="margin: 0 0 8px; font-size: 22px; color: #111827;">Masuk ke AuthLab</h2>
+            <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">
+              Klik tombol di bawah untuk login. Link ini hanya berlaku selama <strong>15 menit</strong> dan hanya bisa digunakan sekali.
+            </p>
+            <a href="${link}"
+               style="display: inline-block; padding: 13px 28px; background: #4f46e5; color: #ffffff;
+                      font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;
+                      letter-spacing: 0.3px;">
+              ✉️ &nbsp;Login Sekarang
+            </a>
+            <p style="margin: 24px 0 0; font-size: 13px; color: #9ca3af;">
+              Jika kamu tidak meminta link ini, abaikan email ini. Link akan kadaluarsa otomatis.
+            </p>
+            <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
+            <p style="margin: 0; font-size: 12px; color: #d1d5db;">
+              AuthLab · Magic Link Authentication
+            </p>
+          </div>
+        `,
+      }),
+    });
+
+    if (!resendRes.ok) {
+      const errBody = await resendRes.json().catch(() => ({}));
+      console.error('❌ Resend API gagal:', resendRes.status, errBody);
+      return respond(res, 500, false, 'Gagal mengirim email. Coba beberapa saat lagi.');
+    }
+
+    console.log(`✅ Magic link terkirim ke ${email}`);
+    respond(res, 200, true, 'Magic link berhasil dikirim! Cek inbox Gmail kamu.');
 
   } catch (err) {
     console.error('Magic link error:', err);
