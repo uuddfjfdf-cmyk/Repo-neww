@@ -15,9 +15,9 @@ console.log('   NODE_ENV       :', process.env.NODE_ENV       || '(tidak di-set)
 console.log('   PORT           :', process.env.PORT           || '(tidak di-set, default 3000)');
 console.log('   MONGO_URI      :', process.env.MONGO_URI      ? '✅ terbaca' : '❌ TIDAK TERBACA');
 console.log('   JWT_SECRET     :', process.env.JWT_SECRET     ? '✅ terbaca' : '❌ TIDAK TERBACA');
-// 🔥 CONFIG: API KEY RESEND DI AMBIL DARI VARIABLE ENV DI SINI 🔥
-// 👉 Isi RESEND_API_KEY di file .env lokal atau tab Variables di Railway
-console.log('   RESEND_API_KEY :', process.env.RESEND_API_KEY ? '✅ terbaca' : '⚠️  BELUM DI-SET (magic link email tidak akan terkirim)');
+// ✅ DIGANTI: dari RESEND_API_KEY ke EMAIL_USER + EMAIL_PASS (nodemailer SMTP Gmail)
+console.log('   EMAIL_USER     :', process.env.EMAIL_USER     ? '✅ terbaca' : '⚠️  BELUM DI-SET (magic link email tidak akan terkirim)');
+console.log('   EMAIL_PASS     :', process.env.EMAIL_PASS     ? '✅ terbaca' : '⚠️  BELUM DI-SET (magic link email tidak akan terkirim)');
 
 // ── VALIDASI ENV WAJIB (FAIL FAST) ──────────────
 const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
@@ -33,16 +33,42 @@ if (missingEnv.length > 0) {
   process.exit(1);
 }
 
-const express   = require('express');
-const mongoose  = require('mongoose');
-const bcrypt    = require('bcryptjs');
-const jwt       = require('jsonwebtoken');
-const cors      = require('cors');
-const crypto    = require('crypto');
-const rateLimit = require('express-rate-limit');
+const express    = require('express');
+const mongoose   = require('mongoose');
+const bcrypt     = require('bcryptjs');
+const jwt        = require('jsonwebtoken');
+const cors       = require('cors');
+const crypto     = require('crypto');
+const rateLimit  = require('express-rate-limit');
+const nodemailer = require('nodemailer'); // ✅ BARU: ganti Resend dengan nodemailer
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
+
+// ── KONFIGURASI NODEMAILER SMTP GMAIL ────────────
+// Membaca EMAIL_USER dan EMAIL_PASS LANGSUNG dari Environment Variables sistem
+// (Railway Variables / .env lokal) — tanpa hardcode apapun di sini.
+const mailTransporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER, // Alamat Gmail pengirim, misal: authlab@gmail.com
+    pass: process.env.EMAIL_PASS, // 16-digit App Password dari Google (bukan password biasa!)
+  },
+});
+
+// Verifikasi koneksi SMTP saat startup (non-fatal jika env belum di-set)
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  mailTransporter.verify((err) => {
+    if (err) {
+      console.warn('⚠️  SMTP Gmail gagal diverifikasi:', err.message);
+      console.warn('   Pastikan EMAIL_USER & EMAIL_PASS sudah benar dan App Password aktif.');
+    } else {
+      console.log('✅ SMTP Gmail siap digunakan sebagai:', process.env.EMAIL_USER);
+    }
+  });
+} else {
+  console.warn('⚠️  EMAIL_USER / EMAIL_PASS belum di-set. Pengiriman magic link akan gagal.');
+}
 
 // ── TRUST PROXY (wajib di Railway / behind reverse proxy) ─
 app.set('trust proxy', 1);
@@ -276,19 +302,17 @@ app.get('/api/auth/check-username', async (req, res) => {
 });
 
 // ── SEND MAGIC LINK ──────────────────────────────
+// ✅ DIMODIFIKASI: Ganti Resend API dengan nodemailer SMTP Gmail
 app.post('/api/auth/magic-link', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return respond(res, 400, false, 'Email diperlukan');
 
-    // 🔥 CONFIG: API KEY RESEND DI AMBIL DARI VARIABLE ENV DI SINI 🔥
-    // 👉 Tambahkan RESEND_API_KEY=re_xxxx di file .env lokal atau
-    //    tab Variables di Railway agar email magic link bisa terkirim
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    if (!RESEND_API_KEY) {
-      console.error('❌ RESEND_API_KEY belum di-set! Magic link tidak bisa dikirim.');
-      console.error('   • Lokal  : tambahkan RESEND_API_KEY=re_xxxx di file .env');
-      console.error('   • Railway: buka Settings → Variables → tambahkan RESEND_API_KEY');
+    // Cek apakah EMAIL_USER dan EMAIL_PASS sudah di-set via Environment Variables
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.error('❌ EMAIL_USER / EMAIL_PASS belum di-set! Magic link tidak bisa dikirim.');
+      console.error('   • Lokal  : tambahkan EMAIL_USER dan EMAIL_PASS di file .env');
+      console.error('   • Railway: buka Settings → Variables → tambahkan EMAIL_USER & EMAIL_PASS');
       return respond(res, 500, false, 'Layanan email belum dikonfigurasi. Hubungi administrator.');
     }
 
@@ -301,58 +325,52 @@ app.post('/api/auth/magic-link', async (req, res) => {
     // Base URL: pakai Railway domain jika ada, fallback ke FRONTEND_URL
     const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-      : (process.env.FRONTEND_URL || 'http://localhost:3000');
+      : (process.env.FRONTEND_URL || `http://localhost:${PORT}`);
 
     // Link mengarah ke route backend verify-magic agar token langsung diproses & user ter-login
     const link = `${baseUrl}/api/auth/verify-magic?token=${token}`;
 
-    // Kirim email via Resend API menggunakan fetch bawaan Node.js
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method : 'POST',
-      headers: {
-        'Content-Type' : 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from   : process.env.RESEND_FROM_EMAIL || 'AuthLab <onboarding@resend.dev>',
-        to     : [email],
-        subject: 'Magic Link Login — AuthLab',
-        html   : `
-          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb; border-radius: 12px;">
-            <h2 style="margin: 0 0 8px; font-size: 22px; color: #111827;">Masuk ke AuthLab</h2>
-            <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">
-              Klik tombol di bawah untuk login. Link ini hanya berlaku selama <strong>15 menit</strong> dan hanya bisa digunakan sekali.
-            </p>
-            <a href="${link}"
-               style="display: inline-block; padding: 13px 28px; background: #4f46e5; color: #ffffff;
-                      font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;
-                      letter-spacing: 0.3px;">
-              ✉️ &nbsp;Login Sekarang
-            </a>
-            <p style="margin: 24px 0 0; font-size: 13px; color: #9ca3af;">
-              Jika kamu tidak meminta link ini, abaikan email ini. Link akan kadaluarsa otomatis.
-            </p>
-            <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
-            <p style="margin: 0; font-size: 12px; color: #d1d5db;">
-              AuthLab · Magic Link Authentication
-            </p>
-          </div>
-        `,
-      }),
-    });
+    // ✅ Kirim email via nodemailer SMTP Gmail
+    const mailOptions = {
+      from   : `"AuthLab" <${process.env.EMAIL_USER}>`,
+      to     : email,
+      subject: 'Magic Link Login — AuthLab',
+      html   : `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #f9fafb; border-radius: 12px;">
+          <h2 style="margin: 0 0 8px; font-size: 22px; color: #111827;">Masuk ke AuthLab</h2>
+          <p style="margin: 0 0 24px; font-size: 15px; color: #4b5563;">
+            Klik tombol di bawah untuk login. Link ini hanya berlaku selama <strong>15 menit</strong> dan hanya bisa digunakan sekali.
+          </p>
+          <a href="${link}"
+             style="display: inline-block; padding: 13px 28px; background: #4f46e5; color: #ffffff;
+                    font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 8px;
+                    letter-spacing: 0.3px;">
+            ✉️ &nbsp;Login Sekarang
+          </a>
+          <p style="margin: 24px 0 0; font-size: 13px; color: #9ca3af;">
+            Jika kamu tidak meminta link ini, abaikan email ini. Link akan kadaluarsa otomatis.
+          </p>
+          <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
+          <p style="margin: 0; font-size: 12px; color: #d1d5db;">
+            AuthLab · Magic Link Authentication
+          </p>
+        </div>
+      `,
+    };
 
-    if (!resendRes.ok) {
-      const errBody = await resendRes.json().catch(() => ({}));
-      console.error('❌ Resend API gagal:', resendRes.status, errBody);
-      return respond(res, 500, false, 'Gagal mengirim email. Coba beberapa saat lagi.');
-    }
+    await mailTransporter.sendMail(mailOptions);
 
-    console.log(`✅ Magic link terkirim ke ${email}`);
+    console.log(`✅ Magic link berhasil dikirim ke ${email} via SMTP Gmail`);
     respond(res, 200, true, 'Magic link berhasil dikirim! Cek inbox Gmail kamu.');
 
   } catch (err) {
-    console.error('Magic link error:', err);
-    respond(res, 500, false, 'Internal server error');
+    console.error('❌ Magic link error:', err.message);
+    // Tangani error spesifik nodemailer / Gmail
+    if (err.code === 'EAUTH') {
+      console.error('   → Autentikasi Gmail gagal. Cek EMAIL_USER & EMAIL_PASS (App Password).');
+      return respond(res, 500, false, 'Autentikasi email gagal. Cek konfigurasi Gmail App Password.');
+    }
+    respond(res, 500, false, 'Gagal mengirim email. Coba beberapa saat lagi.');
   }
 });
 
@@ -391,16 +409,69 @@ app.get('/api/auth/verify-magic', async (req, res) => {
     const accessToken  = signAccessToken(user._id);
     const refreshToken = signRefreshToken(user._id);
 
-    // Redirect ke frontend bawa accessToken di query string.
-    // Frontend ambil token dari URL lalu simpan ke localStorage.
+    // ✅ DIPERBAIKI: gunakan template string ke PORT aktif, bukan hardcoded 8080
     const targetUrl = process.env.RAILWAY_PUBLIC_DOMAIN
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}?token=${accessToken}`
-      : `http://localhost:8080?token=${accessToken}`;
+      : `http://localhost:${PORT}?token=${accessToken}`;
 
     res.redirect(targetUrl);
 
   } catch (err) {
     console.error('Verify magic error:', err);
+    respond(res, 500, false, 'Internal server error');
+  }
+});
+
+// ── OAUTH SYNC (Google Firebase → MongoDB) ───────
+// ✅ BARU: Endpoint untuk sinkronisasi user Google Firebase ke MongoDB Atlas
+app.post('/api/auth/oauth-sync', async (req, res) => {
+  try {
+    const { email, firstName, lastName } = req.body;
+
+    if (!email) return respond(res, 400, false, 'Email diperlukan');
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // ── USER BARU: belum ada di MongoDB ──────────
+      // Enkripsi password dummy acak dengan bcrypt (user tidak akan pakai password ini)
+      const dummyPassword = crypto.randomBytes(16).toString('hex');
+      const hashedDummy   = await bcrypt.hash(dummyPassword, 12);
+
+      user = await User.create({
+        email,
+        firstName : firstName || '',
+        lastName  : lastName  || '',
+        password  : hashedDummy,
+        provider  : 'google',     // Tandai sebagai user Google
+        isVerified: true,         // Email Google sudah terverifikasi otomatis
+      });
+      console.log(`✅ User Google baru dibuat di MongoDB: ${email}`);
+    } else {
+      // ── USER LAMA: sudah ada di MongoDB ──────────
+      // Perbarui isVerified menjadi true jika belum
+      if (!user.isVerified) {
+        user.isVerified = true;
+        await user.save();
+        console.log(`🔄 isVerified diperbarui menjadi true untuk: ${email}`);
+      }
+      console.log(`✅ User Google existing login: ${email}`);
+    }
+
+    // Generate token untuk kedua kondisi (user baru maupun lama)
+    const accessToken  = signAccessToken(user._id);
+    const refreshToken = signRefreshToken(user._id);
+
+    // Kembalikan response sukses dengan data lengkap
+    res.status(user.createdAt > new Date(Date.now() - 5000) ? 201 : 200).json({
+      success     : true,
+      user        : user.toSafeJSON(),
+      accessToken,
+      refreshToken,
+    });
+
+  } catch (err) {
+    console.error('OAuth sync error:', err);
     respond(res, 500, false, 'Internal server error');
   }
 });
