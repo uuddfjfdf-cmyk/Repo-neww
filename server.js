@@ -50,7 +50,7 @@ const PORT = process.env.PORT || 3000;
 // (Railway Variables / .env lokal) — tanpa hardcode apapun di sini.
 const mailTransporter = nodemailer.createTransport({
   host  : 'smtp.gmail.com',
-  port  : 465,        // Port 465 (SSL) — lebih stabil di Railway dibanding 587 yang sering timeout
+  port  : 587,        // Port 465 (SSL) — lebih stabil di Railway dibanding 587 yang sering timeout
   secure: true,       // true = SSL/TLS langsung (wajib untuk port 465)
   auth  : {
     user: process.env.EMAIL_USER, // Alamat Gmail pengirim, misal: authlab@gmail.com
