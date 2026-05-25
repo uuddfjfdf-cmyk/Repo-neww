@@ -1024,7 +1024,7 @@
           </div>
           <div class="flow-step">
             <div class="flow-num done">3</div>
-            <div><strong>Kirim email dengan link</strong><br><span style="color:var(--muted);font-size:0.78rem;">Pakai Resend, SendGrid, atau Nodemailer</span></div>
+            <div><strong>Kirim email dengan link</strong><br><span style="color:var(--muted);font-size:0.78rem;">Pakai nodemailer SMTP Gmail</span></div>
           </div>
           <div class="flow-step">
             <div class="flow-num done">4</div>
@@ -1041,11 +1041,11 @@
 <br><span class="c-kw">const</span> expires = <span class="c-kw">new</span> <span class="c-fn">Date</span>(Date.<span class="c-fn">now</span>() + 15 * 60000);
 <br><span class="c-kw">await</span> db.<span class="c-fn">insert</span>({ email, token, expires });
 <br>
-<br><span class="c-comment">// Kirim link via email</span>
-<br><span class="c-kw">await</span> resend.<span class="c-fn">send</span>({
+<br><span class="c-comment">// Kirim via nodemailer SMTP Gmail</span>
+<br><span class="c-kw">await</span> transporter.<span class="c-fn">sendMail</span>({
 <br>  to: email,
 <br>  subject: <span class="c-str">'Login ke AuthLab'</span>,
-<br>  html: <span class="c-str">`&lt;a href="/verify?t=${token}"&gt;Masuk&lt;/a&gt;`</span>
+<br>  html: <span class="c-str">`&lt;a href="${link}"&gt;Masuk&lt;/a&gt;`</span>
 <br>});
         </div>
       </div>
@@ -1477,9 +1477,8 @@ async function sendMagicLink() {
   }
 }
 
+// ✅ DIPERBAIKI: clickMagicLink() membaca token dari URL query param
 async function clickMagicLink() {
-  // Ambil token asli dari URL query param (dikirim backend via email link)
-  // Jika user klik dari halaman ini (demo), baca token dari URL: ?token=...
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
 
@@ -1497,7 +1496,6 @@ async function clickMagicLink() {
     if (res.ok && data.success) {
       document.getElementById('magicToken').textContent = token;
       document.getElementById('magicStep3').style.display = 'block';
-      // Simpan JWT dari backend jika tersedia
       if (data.accessToken) {
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken || '');
@@ -1520,6 +1518,44 @@ function resetMagic() {
   document.getElementById('magicStep3').style.display = 'none';
   document.getElementById('magicEmail').value = '';
 }
+
+// ✅ BARU: Deteksi otomatis token dari URL saat halaman dimuat
+(function detectMagicTokenOnLoad() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+
+  if (!token) return; // Tidak ada token di URL, tidak perlu melakukan apa-apa
+
+  console.log('🔑 Token terdeteksi di URL. Memproses login magic link...');
+
+  // Simpan accessToken langsung ke localStorage
+  localStorage.setItem('accessToken', token);
+
+  // Picu toast sukses
+  toast('Magic link berhasil! Kamu sudah masuk 🎉', '✨');
+
+  // Tampilkan token di elemen magicToken
+  const magicTokenEl = document.getElementById('magicToken');
+  if (magicTokenEl) {
+    magicTokenEl.innerText = token;
+  }
+
+  // Sembunyikan step 1 & 2, tampilkan step 3 secara otomatis
+  const step1 = document.getElementById('magicStep1');
+  const step2 = document.getElementById('magicStep2');
+  const step3 = document.getElementById('magicStep3');
+
+  if (step1) step1.style.display = 'none';
+  if (step2) step2.style.display = 'none';
+  if (step3) step3.style.display = 'block';
+
+  // Otomatis pindah ke tab Magic Link agar user langsung melihat hasilnya
+  switchTab('magic');
+
+  // Bersihkan query param dari URL tanpa reload halaman (UX lebih bersih)
+  const cleanUrl = window.location.pathname;
+  window.history.replaceState({}, document.title, cleanUrl);
+})();
 
 // ── OTP ────────────────────────────────────────
 
@@ -1682,45 +1718,53 @@ window.loginGoogle = async () => {
 
     console.log("Login Google berhasil:", user.email, user.displayName);
 
-    // ── Daftarkan / verifikasi user ke backend MongoDB ──────────────
+    // ✅ DIMODIFIKASI: Arahkan ke endpoint /api/auth/oauth-sync (bukan /api/auth/register)
     let backendData = null;
     try {
-      const backendRes = await fetch('/api/auth/register', {
+      const backendRes = await fetch('/api/auth/oauth-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email    : user.email,
           firstName: user.displayName ? user.displayName.split(' ')[0] : '',
           lastName : user.displayName ? user.displayName.split(' ').slice(1).join(' ') : '',
-          // Tidak ada password — backend simpan provider: 'google'
-          password : crypto.randomUUID(), // dummy agar schema tidak reject; provider='google' dipakai untuk login berikutnya
         })
       });
       backendData = await backendRes.json();
-      // 409 = email sudah terdaftar (user lama) → lanjut normal, tidak error
+
+      // ✅ Jika response berhasil dan ada accessToken, simpan ke localStorage
       if (backendRes.ok && backendData.accessToken) {
         localStorage.setItem('accessToken', backendData.accessToken);
         localStorage.setItem('refreshToken', backendData.refreshToken || '');
-        console.log("✅ User tersimpan di MongoDB:", backendData.user);
-      } else if (backendRes.status === 409) {
-        console.log("ℹ️  User sudah ada di MongoDB, login dilanjutkan.");
+        console.log("✅ Token tersimpan di localStorage. User:", backendData.user);
+
+        // Picu toast sukses
+        toast('Login Google Berhasil!', '🎉');
+
+        // ✅ Tampilkan data email user di resultBox
+        resultBox.style.display = "block";
+        resultBox.innerHTML = `✅ Login Google berhasil!<br><br>` +
+          `<strong>Email:</strong> ${backendData.user.email}<br>` +
+          `<strong>Provider:</strong> ${backendData.user.provider}<br>` +
+          `<strong>Verified:</strong> ${backendData.user.isVerified ? '✅ Ya' : '❌ Tidak'}<br><br>` +
+          `<span style="color:var(--muted);font-size:0.78rem;">accessToken tersimpan di localStorage ✓</span>`;
       } else {
-        console.warn("⚠️  Backend response:", backendData?.message);
+        console.warn("⚠️  Backend oauth-sync response:", backendData?.message);
+        toast('Login Google berhasil, tapi sinkronisasi backend gagal.', '⚠️');
+        resultBox.style.display = "block";
+        resultBox.innerHTML = `✅ Login Firebase berhasil: <strong>${user.email}</strong><br><span style="color:#f7b731;font-size:0.78rem;">⚠️ Backend sync gagal: ${backendData?.message || 'unknown error'}</span>`;
       }
     } catch (backendErr) {
       console.error("⚠️  Gagal sinkronisasi ke backend:", backendErr.message);
-      // Tidak menggagalkan login Firebase — tampilkan peringatan saja
+      toast('Login Google berhasil, tapi server tidak dapat dijangkau.', '⚠️');
+      resultBox.style.display = "block";
+      resultBox.innerHTML = `✅ Login Firebase berhasil: <strong>${user.email}</strong><br><span style="color:#f7b731;font-size:0.78rem;">⚠️ Backend tidak dapat dijangkau</span>`;
     }
-    // ────────────────────────────────────────────────────────────────
 
     // Kembalikan tampilan button
     btn.disabled = false;
     btn.style.opacity = "1";
     btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Lanjut dengan Google`;
-
-    // Tampilkan hasil login di kotak hasil (bukan menimpa button)
-    resultBox.style.display = "block";
-    resultBox.innerHTML = `✅ Anda berhasil login dengan email:<br><br><strong>${user.email}</strong>`;
 
   } catch(err) {
     console.error("Login Google gagal:", err.code, err.message);
